@@ -1,0 +1,5 @@
+node_modules
+attached_assets
+*.log
+dist
+.env

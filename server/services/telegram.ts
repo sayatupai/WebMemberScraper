@@ -1,4 +1,8 @@
 import { WebSocket } from 'ws';
+import { StringSession } from 'telegram/sessions';
+import { TelegramClient } from 'telegram';
+import { Api } from 'telegram';
+import { storage } from '../storage';
 
 export interface TelegramGroup {
   id: string;
@@ -37,40 +41,49 @@ export class TelegramService {
   private scrapingProgress = 0;
   private totalToScrape = 0;
   private currentGroup: TelegramGroup | null = null;
+  private client: TelegramClient | null = null;
+  private session: StringSession | null = null;
 
   constructor() {
-    // Initialize with environment variables
     this.initializeAPI();
   }
 
   private initializeAPI() {
-    const apiId = process.env.TELEGRAM_API_ID || process.env.API_ID;
-    const apiHash = process.env.TELEGRAM_API_HASH || process.env.API_HASH;
-    
+    const apiId = Number(process.env.TELEGRAM_API_ID || process.env.API_ID || 0);
+    const apiHash = String(process.env.TELEGRAM_API_HASH || process.env.API_HASH || '');
     if (!apiId || !apiHash) {
       console.warn('Telegram API credentials not found in environment variables');
     }
+    this.session = new StringSession("");
+    this.client = new TelegramClient(this.session, apiId, apiHash, {
+      connectionRetries: 5,
+    });
   }
 
   async sendCodeRequest(phone: string): Promise<{ success: boolean; message?: string }> {
     try {
-      // Validate phone number format
-      const cleanPhone = phone.trim().replace(/\s+/g, '');
-      if (!cleanPhone.startsWith('+') || cleanPhone.length < 10) {
-        return { success: false, message: 'Format nomor telepon tidak valid. Gunakan format: +628xxxxxxxxx' };
+      if (!this.client) throw new Error('Telegram client not initialized');
+      await this.client.connect();
+      // Cek session di database
+      const sessionDb = await storage.getTelegramSession(phone);
+      if (sessionDb && sessionDb.sessionData) {
+        // Restore session
+        this.session = new StringSession(sessionDb.sessionData);
+        this.client = new TelegramClient(this.session, (this.client as any).apiId, (this.client as any).apiHash, { connectionRetries: 5 });
+        await this.client.connect();
+        if (await (this.client as any).isUserAuthorized()) {
+          this.isAuthenticated = true;
+          return { success: true, message: 'Login otomatis berhasil dari sesi sebelumnya.' };
+        }
       }
-      
-      // Store phone and generate hash
-      this.phoneNumber = cleanPhone;
-      this.phoneCodeHash = `code_hash_${Date.now()}`;
-      
-      // Simulate realistic delay
-      await this.delay(2000);
-      
-      return { 
-        success: true, 
-        message: 'Kode verifikasi telah dikirim ke Telegram Anda. Silakan cek aplikasi Telegram.' 
-      };
+      // Jika tidak ada session, kirim OTP
+      const apiId = (this.client as any).apiId || Number(process.env.TELEGRAM_API_ID || process.env.API_ID || 0);
+      const apiHash = (this.client as any).apiHash || String(process.env.TELEGRAM_API_HASH || process.env.API_HASH || '');
+      if (!apiId || !apiHash) throw new Error('API ID/HASH not set');
+      const result = await (this.client as any).sendCode(phone, apiId, apiHash);
+      this.phoneNumber = phone;
+      this.phoneCodeHash = result.phoneCodeHash || result.phone_code_hash;
+      return { success: true, message: 'Kode verifikasi telah dikirim ke Telegram Anda.' };
     } catch (error) {
       return { success: false, message: `Gagal mengirim kode: ${error}` };
     }
@@ -78,49 +91,38 @@ export class TelegramService {
 
   async verifyCode(phone: string, code: string): Promise<{ success: boolean; needsPassword?: boolean; message?: string }> {
     try {
-      // Enhanced code verification with better validation
-      if (!code || code.trim().length === 0) {
-        return { success: false, message: 'Kode verifikasi tidak boleh kosong' };
+      if (!this.client) throw new Error('Telegram client not initialized');
+      await this.client.connect();
+      const result = await this.client.invoke(
+        new Api.auth.SignIn({
+          phoneNumber: phone,
+          phoneCodeHash: this.phoneCodeHash || '',
+          phoneCode: code,
+        })
+      );
+      this.isAuthenticated = true;
+      // Simpan session ke database
+      if (this.session) {
+        await storage.updateTelegramSession(phone, this.session.save());
       }
-      
-      // Clean the code input
-      const cleanCode = code.trim().replace(/\D/g, ''); // Remove non-digits
-      
-      if (cleanCode.length < 4 || cleanCode.length > 6) {
-        return { success: false, message: 'Kode verifikasi harus 4-6 digit' };
-      }
-      
-      // Simulate delay for realistic verification
-      await this.delay(1500);
-      
-      // Special test codes for demonstration
-      if (cleanCode === '12345') {
+      return { success: true, message: 'Login berhasil!' };
+    } catch (error: any) {
+      if (error.message && error.message.includes('SESSION_PASSWORD_NEEDED')) {
         return { success: false, needsPassword: true, message: 'Akun memerlukan verifikasi 2FA' };
       }
-      
-      // Accept common test codes or any valid format
-      const validCodes = ['11111', '00000', '99999', '54321', '67890'];
-      
-      if (validCodes.includes(cleanCode) || (cleanCode.length >= 4 && cleanCode.length <= 6)) {
-        this.isAuthenticated = true;
-        return { success: true, message: 'Kode verifikasi berhasil' };
-      }
-      
-      return { success: false, message: 'Kode verifikasi salah. Silakan coba lagi.' };
-    } catch (error) {
       return { success: false, message: `Gagal verifikasi: ${error}` };
     }
   }
 
   async verifyPassword(password: string): Promise<{ success: boolean; message?: string }> {
     try {
-      // Simulate 2FA verification
-      if (password.length > 0) {
-        this.isAuthenticated = true;
-        return { success: true };
-      }
-      
-      return { success: false, message: 'Invalid password' };
+      if (!this.client) throw new Error('Telegram client not initialized');
+      await this.client.connect();
+      const pwd = await this.client.invoke(new Api.account.GetPassword());
+      const checkPassword = await (this.client as any).computeCheckPassword(pwd, password);
+      await this.client.invoke(new Api.auth.CheckPassword({ password: checkPassword }));
+      this.isAuthenticated = true;
+      return { success: true, message: '2FA berhasil' };
     } catch (error) {
       return { success: false, message: `Password verification failed: ${error}` };
     }
@@ -275,5 +277,12 @@ export class TelegramService {
       progress: this.scrapingProgress,
       total: this.totalToScrape
     };
+  }
+
+  async getProfile(): Promise<any> {
+    if (!this.client) throw new Error('Telegram client not initialized');
+    await this.client.connect();
+    const me = await this.client.getMe();
+    return me;
   }
 }

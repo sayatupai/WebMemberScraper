@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { TelegramService, type ScrapingConfig } from "./services/telegram";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  const telegramService = new TelegramService();
+  const telegramServiceMap = new Map<string, TelegramService>();
 
   // Basic API routes
   app.get("/api/groups", async (req, res) => {
@@ -31,17 +31,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const totalMembers = await storage.getTotalMembersCount();
       const groups = await storage.getScrapedGroups();
-      
       let hiddenMembers = 0;
+      let onlineMembers = 0;
+      let activeMembers = 0;
       for (const group of groups) {
         hiddenMembers += await storage.getHiddenMembersCount(group.groupId);
+        const members = await storage.getScrapedMembers(group.groupId);
+        onlineMembers += members.filter((m: any) => m.isOnline).length;
+        activeMembers += members.filter((m: any) => m.lastSeen && m.lastSeen !== '').length;
       }
-
       res.json({
         totalGroups: groups.length,
         totalMembers,
         hiddenMembers,
-        activeSessions: 1
+        onlineMembers,
+        activeMembers
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch stats" });
@@ -54,12 +58,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
   wss.on('connection', (ws: WebSocket) => {
+    let currentPhone: string | null = null;
+
     console.log('New WebSocket connection established');
 
     ws.on('message', async (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString());
-        await handleWebSocketMessage(ws, message, telegramService);
+        // Multi-session: gunakan phone sebagai key
+        let phoneKey = message.phone || message.phoneCode || currentPhone;
+        if (message.action === 'login_phone' && message.phone) {
+          phoneKey = message.phone;
+          currentPhone = message.phone;
+        }
+        if (phoneKey && !telegramServiceMap.has(phoneKey)) {
+          telegramServiceMap.set(phoneKey, new TelegramService());
+        }
+        const telegramService = phoneKey ? telegramServiceMap.get(phoneKey) : undefined;
+        await handleWebSocketMessage(ws, message, telegramService, phoneKey);
       } catch (error) {
         console.error('WebSocket message error:', error);
         if (ws.readyState === WebSocket.OPEN) {
@@ -72,8 +88,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     ws.on('close', () => {
+      if (currentPhone && telegramServiceMap.has(currentPhone)) {
+        telegramServiceMap.get(currentPhone)?.stopScraping();
+        telegramServiceMap.delete(currentPhone);
+      }
       console.log('WebSocket connection closed');
-      telegramService.stopScraping();
     });
 
     // Send initial connection confirmation
@@ -91,8 +110,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 async function handleWebSocketMessage(
   ws: WebSocket, 
   message: any, 
-  telegramService: TelegramService
+  telegramService: TelegramService | undefined,
+  phoneKey?: string
 ) {
+  if (!telegramService) {
+    ws.send(JSON.stringify({ status: 'error', message: 'Session not found, please login again.' }));
+    return;
+  }
+
   const { action } = message;
 
   switch (action) {
@@ -139,9 +164,15 @@ async function handleWebSocketMessage(
       const verifyResult = await telegramService.verifyCode(phoneCode, code);
       if (verifyResult.success) {
         await storage.updateTelegramSession(phoneCode, 'authenticated');
+        // Ambil profile Telegram user
+        let profile = null;
+        try {
+          profile = await telegramService.getProfile();
+        } catch (e) { profile = null; }
         ws.send(JSON.stringify({
           status: 'login_success',
-          message: verifyResult.message || 'Autentikasi berhasil! Selamat datang di Telegram Soxmed Ranger.'
+          message: verifyResult.message || 'Autentikasi berhasil! Selamat datang di Telegram Soxmed Ranger.',
+          profile
         }));
       } else if (verifyResult.needsPassword) {
         ws.send(JSON.stringify({
@@ -277,6 +308,11 @@ async function handleWebSocketMessage(
             });
           }
         );
+        // Notifikasi selesai scraping
+        ws.send(JSON.stringify({
+          status: 'scraping_done',
+          message: 'Scraping selesai! Data siap diexport.'
+        }));
       } catch (error) {
         ws.send(JSON.stringify({
           status: 'error',
@@ -325,31 +361,61 @@ async function handleWebSocketMessage(
 
     case 'export_advanced':
       const { format, filters } = message;
-      ws.send(JSON.stringify({
-        status: 'info',
-        message: `Exporting data in ${format} format with applied filters`
-      }));
-      break;
-
-    case 'test_all_proxies':
-      ws.send(JSON.stringify({
-        status: 'info',
-        message: 'Testing all configured proxies...'
-      }));
-      break;
-
-    case 'clear_failed_proxies':
-      ws.send(JSON.stringify({
-        status: 'info',
-        message: 'Cleared all failed proxy configurations'
-      }));
-      break;
-
-    case 'import_proxy_list':
-      ws.send(JSON.stringify({
-        status: 'info',
-        message: 'Proxy list import feature activated'
-      }));
+      try {
+        // Ambil data member dari storage (bisa difilter)
+        const groupId = message.group_id;
+        let members = [];
+        if (groupId) {
+          members = await storage.getScrapedMembers(groupId);
+        } else {
+          // Export semua member dari semua group
+          const groups = await storage.getScrapedGroups();
+          for (const group of groups) {
+            const groupMembers = await storage.getScrapedMembers(group.groupId);
+            members.push(...groupMembers);
+          }
+        }
+        // Filter advanced
+        let filtered = members;
+        if (Array.isArray(filters)) {
+          filtered = members.filter((m) => {
+            return filters.every((f: any) => {
+              const val = f.field.split('.').reduce((acc: any, k: string) => acc ? acc[k] : undefined, m as any);
+              switch (f.op) {
+                case 'eq': return val === f.value;
+                case 'neq': return val !== f.value;
+                case 'contains': return typeof val === 'string' && val.includes(f.value);
+                case 'in': return Array.isArray(f.value) && f.value.includes(val);
+                case 'range': return Array.isArray(f.value) && val >= f.value[0] && val <= f.value[1];
+                default: return true;
+              }
+            });
+          });
+        }
+        let fileBuffer: Buffer;
+        let fileName: string;
+        if (format === 'csv') {
+          const { exportToCSV } = await import('./exporter');
+          fileBuffer = await exportToCSV(filtered);
+          fileName = 'export.csv';
+        } else if (format === 'excel' || format === 'xlsx') {
+          const { exportToExcel } = await import('./exporter');
+          fileBuffer = await exportToExcel(filtered);
+          fileName = 'export.xlsx';
+        } else {
+          ws.send(JSON.stringify({ status: 'error', message: 'Format tidak didukung' }));
+          return;
+        }
+        // Kirim file ke client (base64)
+        ws.send(JSON.stringify({
+          status: 'export_ready',
+          file: fileBuffer.toString('base64'),
+          fileName,
+          format
+        }));
+      } catch (error) {
+        ws.send(JSON.stringify({ status: 'error', message: `Export gagal: ${error}` }));
+      }
       break;
 
     default:

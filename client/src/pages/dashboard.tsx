@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SpaceBackground } from '@/components/space-background';
 import { LoginSection } from '@/components/login-section';
 import { DashboardSection } from '@/components/dashboard-section';
@@ -39,6 +39,7 @@ interface Stats {
 export default function Dashboard() {
   const { toast } = useToast();
   const { isConnected, sendMessage, lastMessage } = useWebSocket();
+  const [profile, setProfile] = useState<any>(null);
   
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -93,6 +94,9 @@ export default function Dashboard() {
         setIsAuthenticated(true);
         setIsLoading(false);
         toast({ title: 'Success', description: 'Authentication successful' });
+        if (data.profile) {
+          setProfile(data.profile);
+        }
         break;
         
       case 'groups_found':
@@ -391,6 +395,18 @@ export default function Dashboard() {
               </TabsContent>
             </Tabs>
           </>
+        )}
+
+        {/* Profile Section */}
+        {profile && (
+          <div className="mt-8 glass-card p-6 rounded-lg">
+            <h2 className="text-xl font-bold mb-4">Profil Telegram</h2>
+            <div className="text-sm text-gray-300">
+              <div>ID: {profile.id}</div>
+              <div>Username: @{profile.username}</div>
+              <div>Nama: {profile.firstName} {profile.lastName}</div>
+            </div>
+          </div>
         )}
 
         {/* Real-time Log Panel */}
