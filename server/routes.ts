@@ -116,7 +116,7 @@ async function handleWebSocketMessage(
 
         ws.send(JSON.stringify({
           status: 'code_sent',
-          message: 'Verification code sent to your Telegram app'
+          message: codeResult.message || 'Kode verifikasi telah dikirim ke aplikasi Telegram Anda'
         }));
       } else {
         ws.send(JSON.stringify({
@@ -141,7 +141,7 @@ async function handleWebSocketMessage(
         await storage.updateTelegramSession(phoneCode, 'authenticated');
         ws.send(JSON.stringify({
           status: 'login_success',
-          message: 'Authentication successful'
+          message: verifyResult.message || 'Autentikasi berhasil! Selamat datang di Telegram Soxmed Ranger.'
         }));
       } else if (verifyResult.needsPassword) {
         ws.send(JSON.stringify({

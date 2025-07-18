@@ -54,7 +54,7 @@ export function LoginSection({
             <div className="space-y-4">
               <div>
                 <Label htmlFor="phone" className="text-gray-300 font-medium">
-                  Phone Number
+                  Nomor Telepon
                 </Label>
                 <Input
                   id="phone"
@@ -62,16 +62,19 @@ export function LoginSection({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="bg-gray-800/50 border-purple-500/30 text-center focus:border-cyan-400 focus:ring-cyan-400/20"
-                  placeholder="+1234567890"
+                  placeholder="+628xxxxxxxxx"
                   disabled={isLoading}
                 />
+                <div className="text-xs text-gray-400 mt-1 text-center">
+                  Gunakan format internasional dengan kode negara
+                </div>
               </div>
               <Button
                 onClick={handleSendCode}
                 disabled={!phone.trim() || isLoading}
                 className="w-full bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-700 hover:to-cyan-600 font-bold transform hover:scale-105 transition-all"
               >
-                {isLoading ? 'Sending...' : 'Get Verification Code'}
+                {isLoading ? 'Mengirim...' : 'Kirim Kode Verifikasi'}
               </Button>
             </div>
           )}
@@ -80,26 +83,36 @@ export function LoginSection({
             <div className="space-y-4">
               <div>
                 <Label htmlFor="code" className="text-gray-300 font-medium">
-                  Verification Code
+                  Kode Verifikasi
                 </Label>
                 <Input
                   id="code"
                   type="text"
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="bg-gray-800/50 border-cyan-500/30 text-center focus:border-purple-400 focus:ring-purple-400/20"
-                  placeholder="12345"
-                  maxLength={5}
+                  onChange={(e) => {
+                    const input = e.target.value.replace(/\D/g, ''); // Only allow digits
+                    setCode(input);
+                  }}
+                  className="bg-gray-800/50 border-cyan-500/30 text-center focus:border-purple-400 focus:ring-purple-400/20 text-xl font-mono tracking-widest"
+                  placeholder="00000"
+                  maxLength={6}
                   disabled={isLoading}
+                  autoFocus
                 />
+                <div className="text-xs text-gray-400 mt-1 text-center">
+                  Masukkan kode 4-6 digit dari aplikasi Telegram
+                </div>
               </div>
               <Button
                 onClick={handleVerifyCode}
-                disabled={!code.trim() || isLoading}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 font-bold"
+                disabled={!code.trim() || code.length < 4 || isLoading}
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 font-bold disabled:opacity-50"
               >
-                {isLoading ? 'Verifying...' : 'Verify Code'}
+                {isLoading ? 'Memverifikasi...' : 'Verifikasi Kode'}
               </Button>
+              <div className="text-xs text-gray-500 text-center mt-2">
+                Tips: Gunakan kode seperti 11111, 00000, atau 99999 untuk testing
+              </div>
             </div>
           )}
 
