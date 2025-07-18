@@ -1,4 +1,6 @@
 # ...existing code...
+.env
+# ...existing code...
 /WebMemberScraper/
 node_modules
 dist
