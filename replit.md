@@ -1,8 +1,8 @@
 # Overview
 
-This is a full-stack web application built with modern TypeScript, focusing on Telegram group management and data scraping. The application is named "Soxmed Ranger" and provides capabilities for authenticating with Telegram, scraping group data, analyzing member information, and exporting results.
+This is a full-stack web application built with modern TypeScript, focusing on Telegram group management and advanced data scraping. The application is named "Telegram Soxmed Ranger" and provides enterprise-level capabilities for authenticating with Telegram, discovering groups, scraping member data with privacy bypass techniques, AI-powered analytics, proxy management, stealth mode operations, and comprehensive data export functionality.
 
-The project follows a monorepo structure with clear separation between client (React frontend), server (Express backend), and shared code. It's designed to run on Replit with PostgreSQL as the database, using Drizzle ORM for database operations.
+The project follows a monorepo structure with clear separation between client (React frontend), server (Express backend), and shared code. It's designed to run on Replit with PostgreSQL as the database, using Drizzle ORM for database operations. The application features a space-themed 3D interface with advanced glassmorphism design and multiple specialized fonts for a professional appearance.
 
 ## User Preferences
 
@@ -13,11 +13,14 @@ Preferred communication style: Simple, everyday language.
 ### Frontend Architecture
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite for development and build processes
-- **UI Framework**: shadcn/ui components built on Radix UI primitives
-- **Styling**: Tailwind CSS with custom space-themed design
+- **UI Framework**: shadcn/ui components built on Radix UI primitives with advanced Tabs interface
+- **Styling**: Tailwind CSS with custom space-themed design, glassmorphism effects, and neon animations
+- **Typography**: Multiple Google Fonts (Orbitron, Exo 2, Space Grotesk) for futuristic appearance
 - **State Management**: TanStack Query for server state, React hooks for local state
-- **Real-time Communication**: WebSocket connection for live updates
+- **Real-time Communication**: WebSocket connection for live updates and streaming data
 - **Routing**: Wouter for lightweight client-side routing
+- **Animations**: Custom CSS animations including floating, matrix effects, and neon glow
+- **Logo Integration**: Custom logo display with glow effects and floating animation
 
 ### Backend Architecture
 - **Runtime**: Node.js with TypeScript
@@ -28,10 +31,12 @@ Preferred communication style: Simple, everyday language.
 - **Build**: ESBuild for production bundling
 
 ### Database Schema
-- **Users**: Basic user authentication
-- **Telegram Sessions**: Store Telegram session data for persistence
-- **Scraped Groups**: Telegram group metadata and statistics
-- **Scraped Members**: Individual member data with privacy analysis
+- **Users**: Basic user authentication and session management
+- **Telegram Sessions**: Store Telegram session data for persistence and auto-login
+- **Scraped Groups**: Telegram group metadata, statistics, and member counts
+- **Scraped Members**: Individual member data with privacy analysis, risk scoring, and intelligence
+- **Proxy Configs**: Proxy server configurations for IP rotation and anonymity
+- **Stealth Settings**: Advanced anti-detection and privacy bypass configurations
 
 ## Key Components
 
@@ -39,24 +44,53 @@ Preferred communication style: Simple, everyday language.
 - Multi-step Telegram authentication flow (phone → code → 2FA if needed)
 - Session persistence using PostgreSQL storage
 - WebSocket-based real-time authentication status updates
+- Custom logo integration with floating animations
 
-### Telegram Integration
+### Advanced Telegram Integration
 - Custom TelegramService for handling Telegram API operations
 - Support for group discovery, member scraping, and privacy analysis
-- Configurable scraping modes (standard, hidden, all members)
-- Rate limiting and privacy bypass capabilities
+- Multiple scraping modes (standard, hidden, all members, recent activity)
+- Advanced rate limiting and privacy bypass capabilities
+- Stealth mode with anti-detection algorithms
+- Proxy rotation and IP masking
 
-### Data Analysis
+### AI-Powered Analytics
 - Member visibility analysis (public vs hidden profiles)
+- Risk assessment and anomaly detection
+- Privacy scoring and behavioral analysis
 - Real-time statistics and progress tracking
-- Export capabilities (CSV, JSON)
+- Advanced search and filtering capabilities
+- Export capabilities (CSV, JSON, detailed reports)
 - Interactive charts using Chart.js
+
+### Stealth Mode Operations
+- Anti-detection algorithms and techniques
+- User agent rotation and header spoofing
+- Random delays and human-like behavior simulation
+- Request throttling and fingerprinting protection
+- Configurable stealth levels and timing patterns
+
+### Proxy Management System
+- Multiple proxy protocol support (HTTP, SOCKS4, SOCKS5)
+- Automatic proxy rotation and health monitoring
+- Latency testing and geographic distribution
+- Authentication support for premium proxies
+- Real-time status monitoring and failover
+
+### Advanced UI Components
+- Tabbed interface with specialized sections
+- Space-themed 3D animations and glassmorphism design
+- Real-time progress indicators and status displays
+- Interactive member intelligence tables
+- Advanced filtering and search capabilities
 
 ### Real-time Features
 - WebSocket connection for live updates during scraping
 - Progress tracking with visual indicators
 - Real-time authentication flow feedback
 - Live data export and member count updates
+- Proxy status monitoring and stealth mode feedback
+- AI analysis progress and anomaly alerts
 
 ## Data Flow
 

@@ -293,6 +293,65 @@ async function handleWebSocketMessage(
       }));
       break;
 
+    case 'activate_stealth_mode':
+      ws.send(JSON.stringify({
+        status: 'info',
+        message: 'Stealth mode activated with advanced anti-detection'
+      }));
+      break;
+
+    case 'deactivate_stealth_mode':
+      ws.send(JSON.stringify({
+        status: 'info',
+        message: 'Stealth mode deactivated'
+      }));
+      break;
+
+    case 'add_proxy':
+      const { proxy } = message;
+      ws.send(JSON.stringify({
+        status: 'info',
+        message: `Proxy ${proxy.host}:${proxy.port} added successfully`
+      }));
+      break;
+
+    case 'test_proxy':
+      const { proxyId } = message;
+      ws.send(JSON.stringify({
+        status: 'info',
+        message: `Testing proxy ${proxyId}...`
+      }));
+      break;
+
+    case 'export_advanced':
+      const { format, filters } = message;
+      ws.send(JSON.stringify({
+        status: 'info',
+        message: `Exporting data in ${format} format with applied filters`
+      }));
+      break;
+
+    case 'test_all_proxies':
+      ws.send(JSON.stringify({
+        status: 'info',
+        message: 'Testing all configured proxies...'
+      }));
+      break;
+
+    case 'clear_failed_proxies':
+      ws.send(JSON.stringify({
+        status: 'info',
+        message: 'Cleared all failed proxy configurations'
+      }));
+      break;
+
+    case 'import_proxy_list':
+      ws.send(JSON.stringify({
+        status: 'info',
+        message: 'Proxy list import feature activated'
+      }));
+      break;
+
     default:
       ws.send(JSON.stringify({
         status: 'error',

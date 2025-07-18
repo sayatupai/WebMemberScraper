@@ -82,6 +82,7 @@ export class MemStorage implements IStorage {
     const session: TelegramSession = {
       ...insertSession,
       id,
+      sessionData: insertSession.sessionData || null,
       isActive: true,
       createdAt: new Date(),
       lastLogin: new Date(),
@@ -108,6 +109,8 @@ export class MemStorage implements IStorage {
     const group: ScrapedGroup = {
       ...insertGroup,
       id,
+      memberCount: insertGroup.memberCount || null,
+      isPrivate: insertGroup.isPrivate || null,
       lastScraped: new Date(),
     };
     this.scrapedGroups.set(insertGroup.groupId, group);
@@ -132,6 +135,16 @@ export class MemStorage implements IStorage {
     const member: ScrapedMember = {
       ...insertMember,
       id,
+      phone: insertMember.phone || null,
+      username: insertMember.username || null,
+      firstName: insertMember.firstName || null,
+      lastName: insertMember.lastName || null,
+      isHidden: insertMember.isHidden || null,
+      isOnline: insertMember.isOnline || null,
+      lastSeen: insertMember.lastSeen || null,
+      memberData: insertMember.memberData || null,
+      riskLevel: insertMember.riskLevel || "low",
+      privacyScore: insertMember.privacyScore || 0,
       scrapedAt: new Date(),
     };
     
@@ -149,7 +162,7 @@ export class MemStorage implements IStorage {
 
   async getTotalMembersCount(): Promise<number> {
     let total = 0;
-    for (const members of this.scrapedMembers.values()) {
+    for (const members of Array.from(this.scrapedMembers.values())) {
       total += members.length;
     }
     return total;

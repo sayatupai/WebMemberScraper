@@ -3,7 +3,11 @@ import { SpaceBackground } from '@/components/space-background';
 import { LoginSection } from '@/components/login-section';
 import { DashboardSection } from '@/components/dashboard-section';
 import { MemberAnalytics } from '@/components/member-analytics';
+import { AdvancedAnalytics } from '@/components/advanced-analytics';
+import { ProxyManager } from '@/components/proxy-manager';
+import { StealthMode } from '@/components/stealth-mode';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useToast } from '@/hooks/use-toast';
 
@@ -55,6 +59,7 @@ export default function Dashboard() {
   // Scraping state
   const [isScrapingActive, setIsScrapingActive] = useState(false);
   const [scrapingProgress, setScrapingProgress] = useState<{ current: number; total: number } | null>(null);
+  const [stealthModeActive, setStealthModeActive] = useState(false);
   
   // Logs
   const [logs, setLogs] = useState<string[]>(['System ready. Waiting for connection...']);
@@ -258,11 +263,21 @@ export default function Dashboard() {
           </div>
           
           <div className="text-center">
-            <h1 className="text-6xl font-bold gradient-text mb-4 animate-gradient">
-              TELEGRAM SOXMED RANGER
+            <div className="logo-container mb-6 animate-float">
+              <img 
+                src="https://i.postimg.cc/3dMdRCkH/Tahukah-Kalian-Di-Jhon-wick-4-85.png" 
+                alt="Telegram Soxmed Ranger Logo" 
+                className="logo-glow mx-auto h-24 w-24 md:h-32 md:w-32 rounded-full border-2 border-purple-500/30"
+              />
+            </div>
+            <h1 className="text-5xl md:text-7xl font-orbitron font-black gradient-text mb-4 animate-neon tracking-wider">
+              TELEGRAM SOXMED
             </h1>
-            <p className="text-xl text-gray-300 mb-2">Advanced Social Media Intelligence Platform</p>
-            <p className="text-gray-400 mb-8">Next-generation member scraping with privacy bypass technology</p>
+            <h2 className="text-3xl md:text-4xl font-exo font-bold bg-gradient-to-r from-cyan-400 to-green-400 text-transparent bg-clip-text mb-6 tracking-wide">
+              RANGER
+            </h2>
+            <p className="text-xl font-space text-gray-300 mb-2">Advanced Social Media Intelligence Platform</p>
+            <p className="text-gray-400 mb-8 font-exo">Next-generation member scraping with privacy bypass technology</p>
             
             {/* Status Indicators */}
             <div className="flex justify-center space-x-6 mb-8">
@@ -322,26 +337,59 @@ export default function Dashboard() {
               </Card>
             </div>
 
-            <DashboardSection
-              onSearchGroups={handleSearchGroups}
-              onStartScraping={handleStartScraping}
-              onStopScraping={handleStopScraping}
-              onClearData={handleClearData}
-              groups={groups}
-              isScrapingActive={isScrapingActive}
-              selectedGroup={selectedGroup}
-              onSelectGroup={setSelectedGroup}
-            />
+            {/* Advanced Tabs Interface */}
+            <Tabs defaultValue="dashboard" className="w-full">
+              <TabsList className="grid w-full grid-cols-5 glass-card">
+                <TabsTrigger value="dashboard" className="font-exo">Dashboard</TabsTrigger>
+                <TabsTrigger value="analytics" className="font-exo">Analytics</TabsTrigger>
+                <TabsTrigger value="stealth" className="font-exo">Stealth Mode</TabsTrigger>
+                <TabsTrigger value="proxy" className="font-exo">Proxy Manager</TabsTrigger>
+                <TabsTrigger value="intelligence" className="font-exo">Intelligence</TabsTrigger>
+              </TabsList>
 
-            <div className="mt-8">
-              <MemberAnalytics
-                members={members}
-                scrapingProgress={scrapingProgress}
-                isScrapingActive={isScrapingActive}
-                onExportCSV={handleExportCSV}
-                onExportJSON={handleExportJSON}
-              />
-            </div>
+              <TabsContent value="dashboard" className="mt-6">
+                <DashboardSection
+                  onSearchGroups={handleSearchGroups}
+                  onStartScraping={handleStartScraping}
+                  onStopScraping={handleStopScraping}
+                  onClearData={handleClearData}
+                  groups={groups}
+                  isScrapingActive={isScrapingActive}
+                  selectedGroup={selectedGroup}
+                  onSelectGroup={setSelectedGroup}
+                />
+              </TabsContent>
+
+              <TabsContent value="analytics" className="mt-6">
+                <MemberAnalytics
+                  members={members}
+                  scrapingProgress={scrapingProgress}
+                  isScrapingActive={isScrapingActive}
+                  onExportCSV={handleExportCSV}
+                  onExportJSON={handleExportJSON}
+                />
+              </TabsContent>
+
+              <TabsContent value="stealth" className="mt-6">
+                <StealthMode
+                  onSendMessage={sendMessage}
+                  isActive={stealthModeActive}
+                />
+              </TabsContent>
+
+              <TabsContent value="proxy" className="mt-6">
+                <ProxyManager
+                  onSendMessage={sendMessage}
+                />
+              </TabsContent>
+
+              <TabsContent value="intelligence" className="mt-6">
+                <AdvancedAnalytics
+                  members={members}
+                  onSendMessage={sendMessage}
+                />
+              </TabsContent>
+            </Tabs>
           </>
         )}
 

@@ -39,6 +39,34 @@ export const scrapedMembers = pgTable("scraped_members", {
   lastSeen: text("last_seen"),
   scrapedAt: timestamp("scraped_at").defaultNow(),
   memberData: jsonb("member_data"),
+  riskLevel: text("risk_level").default("low"),
+  privacyScore: integer("privacy_score").default(0),
+});
+
+export const proxyConfigs = pgTable("proxy_configs", {
+  id: serial("id").primaryKey(),
+  host: text("host").notNull(),
+  port: integer("port").notNull(),
+  type: text("type").notNull(),
+  username: text("username"),
+  password: text("password"),
+  isActive: boolean("is_active").default(false),
+  latency: integer("latency"),
+  country: text("country"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const stealthSettings = pgTable("stealth_settings", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  antiDetection: boolean("anti_detection").default(true),
+  userAgentRotation: boolean("user_agent_rotation").default(true),
+  randomDelays: boolean("random_delays").default(true),
+  requestThrottling: boolean("request_throttling").default(true),
+  headerSpoofing: boolean("header_spoofing").default(true),
+  fingerprinting: boolean("fingerprinting").default(false),
+  stealthLevel: integer("stealth_level").default(75),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertTelegramSessionSchema = createInsertSchema(telegramSessions).pick({
@@ -64,6 +92,28 @@ export const insertScrapedMemberSchema = createInsertSchema(scrapedMembers).pick
   isOnline: true,
   lastSeen: true,
   memberData: true,
+  riskLevel: true,
+  privacyScore: true,
+});
+
+export const insertProxyConfigSchema = createInsertSchema(proxyConfigs).pick({
+  host: true,
+  port: true,
+  type: true,
+  username: true,
+  password: true,
+  country: true,
+});
+
+export const insertStealthSettingsSchema = createInsertSchema(stealthSettings).pick({
+  userId: true,
+  antiDetection: true,
+  userAgentRotation: true,
+  randomDelays: true,
+  requestThrottling: true,
+  headerSpoofing: true,
+  fingerprinting: true,
+  stealthLevel: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -74,6 +124,10 @@ export type ScrapedGroup = typeof scrapedGroups.$inferSelect;
 export type InsertScrapedGroup = z.infer<typeof insertScrapedGroupSchema>;
 export type ScrapedMember = typeof scrapedMembers.$inferSelect;
 export type InsertScrapedMember = z.infer<typeof insertScrapedMemberSchema>;
+export type ProxyConfig = typeof proxyConfigs.$inferSelect;
+export type InsertProxyConfig = z.infer<typeof insertProxyConfigSchema>;
+export type StealthSettings = typeof stealthSettings.$inferSelect;
+export type InsertStealthSettings = z.infer<typeof insertStealthSettingsSchema>;
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
