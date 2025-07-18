@@ -1,0 +1,106 @@
+document.addEventListener("DOMContentLoaded", () => {
+    const ws = new WebSocket(`wss://${window.location.host}/ws`);
+
+    const phoneInputDiv = document.getElementById("phone-input-div");
+    const codeInputDiv = document.getElementById("code-input-div");
+    const passwordInputDiv = document.getElementById("password-input-div");
+    
+    const loginSection = document.getElementById("login-section");
+    const dashboardSection = document.getElementById("dashboard-section");
+
+    const phoneInput = document.getElementById("phone");
+    const codeInput = document.getElementById("code");
+    const passwordInput = document.getElementById("password");
+    
+    const loginPhoneBtn = document.getElementById("login-phone-btn");
+    const loginCodeBtn = document.getElementById("login-code-btn");
+    const loginPasswordBtn = document.getElementById("login-password-btn");
+
+    const searchKeywordInput = document.getElementById("search-keyword");
+    const searchBtn = document.getElementById("search-btn");
+    const resultsArea = document.getElementById("results-area");
+
+    const logPanel = document.getElementById("log-panel");
+
+    function log(message) {
+        const timestamp = new Date().toLocaleTimeString();
+        const p = document.createElement("p");
+        p.innerHTML = `<span class="text-cyan-400">${timestamp}:</span> ${message}`;
+        logPanel.appendChild(p);
+        logPanel.scrollTop = logPanel.scrollHeight;
+    }
+
+    ws.onopen = () => {
+        log("Koneksi ke server berhasil dibuat.");
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        log(`Server: ${data.message || data.status}`);
+
+        if (data.status === "code_sent") {
+            phoneInputDiv.classList.add("hidden");
+            codeInputDiv.classList.remove("hidden");
+        } else if (data.status === "password_needed") {
+            codeInputDiv.classList.add("hidden");
+            passwordInputDiv.classList.remove("hidden");
+        } else if (data.status === "login_success") {
+            loginSection.classList.add("hidden");
+            dashboardSection.classList.remove("hidden");
+        } else if (data.status === "error") {
+            alert(`Error: ${data.message}`);
+        } else if (data.status === "groups_found") {
+            resultsArea.innerHTML = ''; // Clear previous results
+            if (data.groups.length > 0) {
+                const list = document.createElement('ul');
+                data.groups.forEach(group => {
+                    const item = document.createElement('li');
+                    item.className = 'p-2 border-b border-gray-700';
+                    item.textContent = group.title;
+                    list.appendChild(item);
+                });
+                resultsArea.appendChild(list);
+            } else {
+                resultsArea.innerHTML = '<p class="text-gray-500 italic">Tidak ada grup yang ditemukan.</p>';
+            }
+        }
+    };
+
+    ws.onclose = () => {
+        log("Koneksi ke server terputus.");
+    };
+
+    loginPhoneBtn.onclick = () => {
+        const phone = phoneInput.value;
+        if (phone) {
+            log(`Mengirim permintaan login untuk ${phone}...`);
+            ws.send(JSON.stringify({ action: "login_phone", phone: phone }));
+        }
+    };
+
+    loginCodeBtn.onclick = () => {
+        const phone = phoneInput.value;
+        const code = codeInput.value;
+        if (code) {
+            log("Memverifikasi kode...");
+            ws.send(JSON.stringify({ action: "login_code", phone: phone, code: code }));
+        }
+    };
+    
+    loginPasswordBtn.onclick = () => {
+        const password = passwordInput.value;
+        if (password) {
+            log("Memverifikasi password...");
+            ws.send(JSON.stringify({ action: "login_password", password: password }));
+        }
+    };
+
+    searchBtn.onclick = () => {
+        const keyword = searchKeywordInput.value;
+        if (keyword) {
+            log(`Meminta pencarian grup dengan kata kunci: ${keyword}`);
+            resultsArea.innerHTML = '<p class="text-gray-500 italic">Mencari...</p>';
+            ws.send(JSON.stringify({ action: "search_groups", keyword: keyword }));
+        }
+    };
+});
