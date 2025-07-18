@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws';
-import { StringSession } from 'telegram/sessions';
+import { StringSession } from "telegram/sessions/index.js";
 import { TelegramClient } from 'telegram';
 import { Api } from 'telegram';
 import { storage } from '../storage';
